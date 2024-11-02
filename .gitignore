@@ -1,0 +1,5 @@
+/.env
+/bags/
+/data/
+/bags/streaming_bag_20241030_214306/bag-info.txt
+/.idea/
