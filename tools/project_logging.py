@@ -1,12 +1,23 @@
+"""
+Project-wide logging configuration module.
+
+This module provides a centralized way to manage logging configuration across a project.
+It supports:
+- JSON-based logging configuration
+- Dynamic logger creation
+- Module-based logger naming
+- Automatic configuration file management
+"""
+
 import json
 import logging
 import logging.config
 import os
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 
-from src.const import PROJECT_PATH, LOG_CONFIG_FILE
-
-default_log_config = {
+# Default logging configuration
+DEFAULT_LOG_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -25,63 +36,166 @@ default_log_config = {
             "stream": "ext://sys.stdout"
         }
     },
-    "loggers": {
-    },
+    "loggers": {},
     "root": {
         "level": "INFO",
         "handlers": ["console"]
     }
 }
 
-new_logger_default_config = {
+DEFAULT_LOGGER_CONFIG = {
     "level": "DEBUG",
     "handlers": ["console"],
     "propagate": False
 }
 
 
-def init_logger():
-    # check if  exists
-    if not LOG_CONFIG_FILE.exists():
-        print(f"Creating logging config file at: {LOG_CONFIG_FILE}")
-        # if not, create it
-        LOG_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        LOG_CONFIG_FILE.write_text(json.dumps(default_log_config, ensure_ascii=False, indent=2),
-                                   encoding="utf-8")
+class LoggingManager:
+    """
+    Manages project-wide logging configuration and logger creation.
+    """
+
+    def __init__(self, config_path: Path, project_root: Path):
+        """
+        Initialize the logging manager.
+
+        Args:
+            config_path: Path to the logging configuration file
+            project_root: Root path of the project for module name resolution
+        """
+        self.config_path = config_path
+        self.project_root = project_root
+        self.config_data: Optional[dict[str, Any]] = None
+        self.initialized = False
+
+    def init_logging(self) -> None:
+        """
+        Initialize logging configuration. Creates default config file if it doesn't exist.
+        """
+        if not self.config_path.exists():
+            print(f"Creating logging config file at: {self.config_path}")
+            self.config_path.parent.mkdir(parents=True, exist_ok=True)
+            self.config_path.write_text(
+                json.dumps(DEFAULT_LOG_CONFIG, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+        self.reload_config()
+        self.initialized = True
+
+    def reload_config(self) -> None:
+        """
+        Reload logging configuration from file and apply it.
+
+        Raises:
+            json.JSONDecodeError: If config file contains invalid JSON
+            OSError: If config file cannot be read
+        """
+        try:
+            self.config_data = json.loads(self.config_path.read_text(encoding="utf-8"))
+            logging.config.dictConfig(self.config_data)
+        except (json.JSONDecodeError, OSError) as e:
+            logging.error(f"Failed to load logging config: {e}")
+            self.config_data = DEFAULT_LOG_CONFIG.copy()
+            logging.config.dictConfig(self.config_data)
+
+    def add_logger(self, name: str) -> None:
+        """
+        Add a new logger configuration.
+
+        Args:
+            name: Name of the logger to add
+        """
+        if not self.config_data:
+            self.reload_config()
+
+        self.config_data["loggers"][name] = DEFAULT_LOGGER_CONFIG.copy()
+        try:
+            self.config_path.write_text(
+                json.dumps(self.config_data, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+            logging.config.dictConfig(self.config_data)
+        except OSError as e:
+            logging.error(f"Failed to save logger configuration: {e}")
+
+    def get_or_create_logger(self, name: str) -> logging.Logger:
+        """
+        Get an existing logger or create a new one if it doesn't exist.
+
+        Args:
+            name: Name of the logger to get or create
+
+        Returns:
+            logging.Logger: Configured logger instance
+        """
+        if not self.initialized:
+            self.init_logging()
+
+        if not self.config_data or name not in self.config_data["loggers"]:
+            self.add_logger(name)
+        return logging.getLogger(name)
+
+    def get_module_name(self, file_path: str) -> str:
+        """
+        Get the module name based on the file's location in the project.
+
+        Args:
+            file_path: Absolute path to the Python file
+
+        Returns:
+            str: Module name in dot notation
+        """
+        try:
+            relative_path = os.path.relpath(file_path, self.project_root)
+            module_name = os.path.splitext(relative_path)[0]
+            return module_name.replace(os.sep, '.')
+        except ValueError as e:
+            logging.warning(f"Could not resolve module name for {file_path}: {e}")
+            return os.path.splitext(os.path.basename(file_path))[0]
+
+    def get_file_logger(self, file_path: str) -> logging.Logger:
+        """
+        Get a logger for a specific file using its module path.
+
+        Args:
+            file_path: Absolute path to the Python file
+
+        Returns:
+            logging.Logger: Configured logger instance
+        """
+        return self.get_or_create_logger(self.get_module_name(file_path))
 
 
-def reload_config() -> dict[str, Any]:
-    config_data = json.loads(LOG_CONFIG_FILE.read_text(encoding="utf-8"))
-    logging.config.dictConfig(config_data)
-    return config_data
+# Global instance
+_manager: Optional[LoggingManager] = None
 
 
-def add_logger(name):
-    config_data["loggers"][name] = new_logger_default_config
-    # write to file
-    LOG_CONFIG_FILE.write_text(json.dumps(config_data, ensure_ascii=False, indent=2), encoding="utf-8")
+def initialize_logging(config_path: Path, project_root: Path) -> None:
+    """
+    Initialize the global logging manager.
+
+    Args:
+        config_path: Path to the logging configuration file
+        project_root: Root path of the project
+    """
+    global _manager
+    _manager = LoggingManager(config_path, project_root)
+    _manager.init_logging()
 
 
-def get_or_create_logger(name: str) -> logging.Logger:
-    # if not cls.initialized:
-    #     cls.init_logger()
-    if name not in config_data["loggers"]:
-        add_logger(name)
-        logging.config.dictConfig(config_data)
-    return logging.getLogger(name)
+def get_logger(file_path: str) -> logging.Logger:
+    """
+    Get a logger for the specified file.
 
+    Args:
+        file_path: Absolute path to the Python file
 
-def get_module_name(file_path: str) -> str:
-    """Get the module name based on the file's location in the project."""
-    relative_path = os.path.relpath(file_path, PROJECT_PATH)
-    module_name = os.path.splitext(relative_path)[0]
-    module_name = module_name.replace(os.sep, '.')
-    return module_name
+    Returns:
+        logging.Logger: Configured logger instance
 
-
-def get_b5_logger(file_path: str) -> logging.Logger:
-    return get_or_create_logger(get_module_name(file_path))
-
-
-init_logger()
-config_data: dict[str, Any] = reload_config()
+    Raises:
+        RuntimeError: If logging hasn't been initialized
+    """
+    if _manager is None:
+        raise RuntimeError("Logging not initialized. Call initialize_logging first.")
+    return _manager.get_file_logger(file_path)
