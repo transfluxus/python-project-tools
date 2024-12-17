@@ -232,6 +232,8 @@ def get_logger(file_path: str) -> logging.Logger:
     @return: Configured logger instance
     @rtype: logging.Logger
     """
+    if not "/" in file_path and not file_path.endswith(".py"):
+        file_path = file_path.replace(".","/") + ".py"
     return LoggingManager(None).get_file_logger(file_path)
 
 

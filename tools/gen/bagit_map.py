@@ -8,7 +8,7 @@ from datetime import datetime
 import time
 
 
-from config import CONFIG
+#from config import CONFIG
 
 # Configure logging
 logging.basicConfig(
@@ -108,24 +108,25 @@ if __name__ == "__main__":
     #     sys.exit(1)
     sys.argv.pop()
     mode = "pack" if not sys.argv else sys.argv[0]
-    CONF = CONFIG.ROOT_PATH / "data"
-    print(CONF.absolute().as_posix())
-    if mode == "pack":
-        if len(sys.argv) != 4:
-            print("Usage: script.py pack source_dir transfer_dir")
-            sys.exit(1)
-        source_dir = CONF / "bags3source"
-        transfer_dir= CONF / "bags3transfer"
-
-        pack_and_transfer(source_dir, transfer_dir)
-
-    elif mode == "receive":
-        if len(sys.argv) != 4:
-            print("Usage: script.py receive transfer_dir destination_dir")
-            sys.exit(1)
-        transfer_dir = Path(sys.argv[2])
-        destination_dir = Path(sys.argv[3])
-        receive_and_unpack(transfer_dir, destination_dir)
+    #CONF = CONFIG.ROOT_PATH / "data"
+    # todo ...
+    # print(CONF.absolute().as_posix())
+    # if mode == "pack":
+    #     if len(sys.argv) != 4:
+    #         print("Usage: script.py pack source_dir transfer_dir")
+    #         sys.exit(1)
+    #     source_dir = CONF / "bags3source"
+    #     transfer_dir= CONF / "bags3transfer"
+    #
+    #     pack_and_transfer(source_dir, transfer_dir)
+    #
+    # elif mode == "receive":
+    #     if len(sys.argv) != 4:
+    #         print("Usage: script.py receive transfer_dir destination_dir")
+    #         sys.exit(1)
+    #     transfer_dir = Path(sys.argv[2])
+    #     destination_dir = Path(sys.argv[3])
+    #     receive_and_unpack(transfer_dir, destination_dir)
 
 
     # pack_and_transfer(source_dir, transfer_dir)
