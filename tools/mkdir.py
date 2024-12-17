@@ -1,24 +1,31 @@
-import logging
 import re
-import shutil
+from functools import lru_cache
 from pathlib import Path
-from typing import Union, TypedDict, Literal
+from typing import Union, TypedDict, Literal, Optional, TYPE_CHECKING
 
-import bagit
 from pydantic.v1 import PathNotExistsError
 
-from tools.experiment.inner_bag import MBag
+from tools.files import save_json
 
-logger = logging.getLogger(__name__)
-
-exist_literal = Literal["error", "overwrite", "must_exist"]
+exist_literal = Literal["must_not_exist", "overwrite", "must_exist", "not-set"]
 source_handling_literal = Literal["move", "copy", "copy_cache"]
+
+if TYPE_CHECKING:
+    from tools.experiment.inner_bag import MBag
+
+
+# @lru_cache
+# def logger():
+#     from tools import project_logging
+#     return project_logging.get_logger(__name__)
+
 
 class SmrtPathKws(TypedDict):
     exists: exist_literal
+    data: Union[dict, str]
 
 
-class SmartPath(type(Path()), ):
+class SmartPath(type(Path())):
     """
     An enhanced Path class that automatically creates directories and provides
     intuitive path joining using the division operator.
@@ -38,34 +45,57 @@ class SmartPath(type(Path()), ):
 
     def __init__(self, *args, **kwargs: SmrtPathKws):
         # Initialize using parent's init
-        super().__init__()
+        super().__init__(args[0])
 
         exists = kwargs.get("exist")
         self.valid = False
 
         if not exists:
-            # logger.warning(f"exists keyword missing for {self}. Path not valid")
-            exists = "create"
+            # logger().warning(f"exists keyword missing for {self}. Path not valid")
+            exists = "not-set"
+
+        data_passed = kwargs.get("data")
+
+        def check_write_data() -> bool:
+            if data_passed and self.suffix == ".json":
+                save_json(self, data_passed)
+                return True
+            return False
 
         if not self.exists():
             if exists == "must_exist":
                 raise PathNotExistsError(path=self.absolute())
             elif exists == "version":
                 self = self.versioned()
+                # todo...
+                ##logger().info(f"versioning {self}")
                 # self.mkdir(parents=True)
-            else:  # elif exists == "create":
+            elif exists == "create":
                 self.mkdir(parents=True)
+            else:
+                if not self.suffix:
+                    # todo...
+                    # logger().info(f"creating {self}")
+                    self.mkdir()
+                else:
+                    check_write_data()
+                    # logger().info(
+                    #     f"not creating {self}. Probably meant to be a file. needs to be set explicitly to ¡create")
         else:
-            if exists == "error":
+            if exists == "must_not_exist":
                 raise FileExistsError(self)
             elif exists == "overwrite":
-                logger.debug(f"overwriting {self}")
-                shutil.rmtree(self)
+                #logger().debug(f"overwriting {self}")
+                if self.suffix:
+                    check_write_data()
+                else:
+                    pass
+                    # shutil.rmtree(self)
             else:  # ignore
                 self.valid = True
 
     def __truediv__(self, key: Union[
-        str, Path, 'SmartPath', tuple[exist_literal, Union[str, Path, 'SmartPath']]]) -> 'SmartPath':
+        str, Path, 'SmartPath', tuple[exist_literal, Union[str, Path, 'SmartPath'], Optional[dict]]]) -> 'SmartPath':
         """
         Override the division operator to join paths and create directories.
 
@@ -76,9 +106,17 @@ class SmartPath(type(Path()), ):
             SmartPath: A new SmartPath instance for the joined path
         """
         if isinstance(key, tuple):
-            return SmartPath(super().__truediv__(key[1]), {"exist": key[0]})
+            if len(key) >= 3:
+                kws = {"exist": key[1], "data": key[2]}
+            elif len(key) == 2:
+                kws = {"exist": key[1], "data": None}
+            else:
+                kws = {"exist": "not-set", "data": None}
+            return SmartPath(super().__truediv__(key[1]), **kws)
         else:
-            return SmartPath(super().__truediv__(key), {"exists": "must_exist"})
+            kws = {"exist": "not-set", "data": None}
+            p = Path(self) / key
+            return SmartPath(p, **kws)
 
     def read(self, encoding: str = "utf-8") -> str:
         return self.read_text(encoding=encoding)
@@ -87,7 +125,11 @@ class SmartPath(type(Path()), ):
     def get_path(self) -> Path:
         return self
 
-    def create_bag(self, info: dict) -> MBag:
+    def create_bag(self, info: dict) -> "MBag":
+        try:
+            import bagit
+        except ImportError:
+            print("Please install bagit to use this function")
         bag = bagit.make_bag(self, info)
         return MBag(self, bag)
 
