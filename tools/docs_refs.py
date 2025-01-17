@@ -1,3 +1,9 @@
+"""
+JSON schema validation
+SQLAlchemy models
+TypedDict definitions for data structures
+"""
+
 from jsonschema import validate, ValidationError
 from mypy.build import TypedDict
 from psycopg2.extensions import JSONB

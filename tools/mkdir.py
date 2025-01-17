@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Union, TypedDict, Literal, Optional, TYPE_CHECKING
 
-from pydantic.v1 import PathNotExistsError
+#from pydantic.v1 import PathNotExistsError
 
 from tools.files import save_json
 
@@ -64,7 +64,7 @@ class SmartPath(type(Path())):
 
         if not self.exists():
             if exists == "must_exist":
-                raise PathNotExistsError(path=self.absolute())
+                raise ValueError(path=self.absolute())
             elif exists == "version":
                 self = self.versioned()
                 # todo...
@@ -195,7 +195,7 @@ if __name__ == "__main__":
 
     try:
         p = SmartPath("sasa", exist="must_exist")
-    except PathNotExistsError as e:
+    except ValueError as e:
         pass  # test
 
     p2 = SmartPath("vvv", exist="version")

@@ -1,3 +1,9 @@
+"""
+Creates databases
+Manages user permissions
+Handles connection string generation
+Uses SQLAlchemy as ORM
+"""
 import sqlalchemy
 
 from sqlalchemy_utils import database_exists, create_database

@@ -17,8 +17,10 @@ def root(module_path_str: Optional[str] = None) -> Path:
         return __SET_ROOT
     elif not module_path_str:
         module_path_str = "."
+    current = Path(module_path_str).absolute()
+    if current.is_file():
         # print("WARNING: module_path_str is required first time calling root")
-    current = Path(module_path_str).absolute().parent
+        current = Path(module_path_str).absolute().parent
     while not (current / ".env").exists():
         current = current.parent
         if current == current.parent:

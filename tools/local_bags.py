@@ -4,14 +4,15 @@ from typing import Any
 import appdirs
 import bagit
 
-from tools.env_root import project_name
+# from tools.env_root import project_name
 from tools.experiment.inner_bag import MBag
 from tools.mkdir import SmartPath, exist_literal, source_handling_literal
 
-_project_name = project_name()
+# _project_name = project_name()
 
 
-
+# TODO:...
+_project_name = "TEMP"
 ad = SmartPath(appdirs.user_data_dir(f"local_bags/{_project_name}"), **{"exist":"create"})
 
 
