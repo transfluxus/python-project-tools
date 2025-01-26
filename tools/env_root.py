@@ -24,7 +24,7 @@ def root(module_path_str: Optional[str] = None) -> Path:
     while not (current / ".env").exists():
         current = current.parent
         if current == current.parent:
-            raise Exception("root not found")
+            raise Exception("root not found. Maybe '.env' missing")
     os.chdir(current)
     __SET_ROOT = current
     return current
