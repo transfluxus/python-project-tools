@@ -2,21 +2,26 @@
 SHOULD NOT IMPORT ANY OTHER TOOL
 """
 import os
+import traceback
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
-#from _config import CONFIG
+__SET_ROOT: Path = None
+__FIRST_ROOT_STACK_TRACE = None
 
-__SET_ROOT:Path= None
 
 @lru_cache
 def root(module_path_str: Optional[str] = None) -> Path:
-    global __SET_ROOT
-    if __SET_ROOT:
+    global __SET_ROOT, __FIRST_ROOT_STACK_TRACE
+    if __SET_ROOT and not module_path_str:
         return __SET_ROOT
     elif not module_path_str:
         module_path_str = "."
+    else:
+        if __FIRST_ROOT_STACK_TRACE:
+            raise Exception(f"root can only be set once FIRST CALL LOCATION:\n\n {__FIRST_ROOT_STACK_TRACE}")
+    __FIRST_ROOT_STACK_TRACE = ''.join(traceback.format_stack()[:-1])
     current = Path(module_path_str).absolute()
     if current.is_file():
         # print("WARNING: module_path_str is required first time calling root")
@@ -27,16 +32,5 @@ def root(module_path_str: Optional[str] = None) -> Path:
             raise Exception("root not found. Maybe '.env' missing")
     os.chdir(current)
     __SET_ROOT = current
+    root.cache_clear()
     return current
-
-
-# @lru_cache
-# def project_name() -> str:
-#     root_dir = root()
-#     project_name = CONFIG.PROJECT_NAME
-#     if project_name:
-#         return project_name
-#     return root_dir.name
-
-
-#ROOT_PATH = root()
