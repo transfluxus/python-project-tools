@@ -21,7 +21,7 @@ def root(module_path_str: Optional[str] = None) -> Path:
     else:
         if __FIRST_ROOT_STACK_TRACE:
             raise Exception(f"root can only be set once FIRST CALL LOCATION:\n\n {__FIRST_ROOT_STACK_TRACE}")
-    __FIRST_ROOT_STACK_TRACE = ''.join(traceback.format_stack()[:-1])
+        __FIRST_ROOT_STACK_TRACE = ''.join(traceback.format_stack()[:-1])
     current = Path(module_path_str).absolute()
     if current.is_file():
         # print("WARNING: module_path_str is required first time calling root")
