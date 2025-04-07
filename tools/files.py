@@ -6,6 +6,7 @@ import yaml
 from yaml import Loader
 
 from tools.env_root import root
+from tools.fast_levenhstein import levenhstein_get_closest_matches
 
 
 def load_json(path: Path) -> dict:
@@ -27,7 +28,7 @@ def read_data(path: Path, config: Optional[dict] = None):
     if path.suffix == ".json":
         return orjson.loads(path.read_text(encoding="utf-8"))
     elif path.suffix == ".yaml":
-        return yaml.load(path.read_text(encoding="utf-8"),  Loader=Loader)
+        return yaml.load(path.read_text(encoding="utf-8"), Loader=Loader)
     elif path.suffix == ".csv":
         if not config:
             config = {}
@@ -51,7 +52,8 @@ def read_data(path: Path, config: Optional[dict] = None):
         raise NotImplementedError(f"File format {path.suffix} not supported")
 
 
-def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True, encoding: str = "utf-8") -> None:
+def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True,
+              encoding: str = "utf-8") -> None:
     path = Path(path)
     if indent_2:
         content = orjson.dumps(
@@ -68,6 +70,7 @@ def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional
 def as_path(path: str | Path) -> Path:
     return Path(path)
 
+
 # todo test
 def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
     if path.is_absolute():
@@ -79,10 +82,34 @@ def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
             return base_dir / path
 
 
-
 def relative_to_project_path(path: Path, parenthesis: bool = True) -> str:
     p = str(path.relative_to(root()))
     if parenthesis:
         return f"'{p}'"
     else:
         return p
+
+
+def get_latest_file(folder: Path, type_filter: Optional[str] = "*") -> Optional[Path]:
+    folder.glob(f"*.{type_filter}")
+
+
+def levenhstein_get_similar_filenames(filename: str | Path, directory: Path, ignore_suffix: bool = True) -> list[Path]:
+    """
+
+    :param filename:
+    :param directory:
+    :param return_only_filename: instead of full path
+    :param ignore_suffix:
+    :return:
+    """
+    fp: Path = Path(filename) if isinstance(filename, str) else filename
+    #assert fp.relative_to(directory)
+    file_map = {
+        f.stem if ignore_suffix else f.name : f
+        for f in directory.glob("*.*")
+    }
+    search_ = fp.stem if ignore_suffix else fp.name
+    from tools.fast_levenhstein import levenhstein_get_closest_matches
+    return [file_map[fn] for fn in levenhstein_get_closest_matches(search_, list(file_map.keys()), threshold=0.4)]
+
