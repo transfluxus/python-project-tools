@@ -2,8 +2,7 @@ from csv import DictReader
 from pathlib import Path
 from typing import Union, Any, Optional
 
-import yaml
-from yaml import Loader
+
 
 from tools.env_root import root
 from tools.fast_levenhstein import levenhstein_get_closest_matches
@@ -13,7 +12,7 @@ def load_json(path: Path) -> dict:
     return orjson.loads(path.read_text(encoding="utf-8"))
 
 
-import orjson
+
 
 
 def read_data(path: Path, config: Optional[dict] = None):
@@ -28,7 +27,12 @@ def read_data(path: Path, config: Optional[dict] = None):
     if path.suffix == ".json":
         return orjson.loads(path.read_text(encoding="utf-8"))
     elif path.suffix == ".yaml":
-        return yaml.load(path.read_text(encoding="utf-8"), Loader=Loader)
+        try:
+            import yaml
+            from yaml import Loader
+        except ImportError:
+            raise
+        return yaml.load(path.read_text(encoding="utf-8"),  Loader=Loader)
     elif path.suffix == ".csv":
         if not config:
             config = {}
@@ -52,24 +56,33 @@ def read_data(path: Path, config: Optional[dict] = None):
         raise NotImplementedError(f"File format {path.suffix} not supported")
 
 
-def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True,
-              encoding: str = "utf-8") -> None:
-    path = Path(path)
-    if indent_2:
-        content = orjson.dumps(
-            data,
-            option=orjson.OPT_INDENT_2,
-            default=str
-        )
-    else:
-        content = orjson.dumps(data, default=str)
+def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True, encoding: str = "utf-8") -> None:
+    try:
+        import orjson
+        no_orjson = False
+    except ImportError:
+        import json
+        no_orjson = True
 
-    path.write_bytes(content)
+    path = Path(path)
+
+    if no_orjson:
+        json.dump(data, path.open("w", encoding=encoding), indent=2)
+    else:
+        if indent_2:
+            content = orjson.dumps(
+                data,
+                option=orjson.OPT_INDENT_2,
+                default=str
+            )
+        else:
+            content = orjson.dumps(data, default=str)
+
+        path.write_bytes(content)
 
 
 def as_path(path: str | Path) -> Path:
     return Path(path)
-
 
 # todo test
 def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
@@ -80,6 +93,7 @@ def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
             return root() / path
         else:
             return base_dir / path
+
 
 
 def relative_to_project_path(path: Path, parenthesis: bool = True) -> str:
