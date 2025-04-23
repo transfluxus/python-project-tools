@@ -2,7 +2,7 @@ from csv import DictReader
 from pathlib import Path
 from typing import Union, Any, Optional
 
-
+from orjson import orjson
 
 from tools.env_root import root
 from tools.fast_levenhstein import levenhstein_get_closest_matches
@@ -57,28 +57,19 @@ def read_data(path: Path, config: Optional[dict] = None):
 
 
 def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True, encoding: str = "utf-8") -> None:
-    try:
-        import orjson
-        no_orjson = False
-    except ImportError:
-        import json
-        no_orjson = True
 
     path = Path(path)
 
-    if no_orjson:
-        json.dump(data, path.open("w", encoding=encoding), indent=2)
+    if indent_2:
+        content = orjson.dumps(
+            data,
+            option=orjson.OPT_INDENT_2,
+            default=str
+        )
     else:
-        if indent_2:
-            content = orjson.dumps(
-                data,
-                option=orjson.OPT_INDENT_2,
-                default=str
-            )
-        else:
-            content = orjson.dumps(data, default=str)
+        content = orjson.dumps(data, default=str)
 
-        path.write_bytes(content)
+    path.write_bytes(content)
 
 
 def as_path(path: str | Path) -> Path:
