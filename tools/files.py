@@ -5,14 +5,11 @@ from typing import Union, Any, Optional
 
 
 from tools.env_root import root
-from tools.fast_levenhstein import levenhstein_get_closest_matches
 
 
 def load_json(path: Path) -> dict:
+    import orjson
     return orjson.loads(path.read_text(encoding="utf-8"))
-
-
-
 
 
 def read_data(path: Path, config: Optional[dict] = None):
@@ -25,6 +22,7 @@ def read_data(path: Path, config: Optional[dict] = None):
     :return:
     """
     if path.suffix == ".json":
+        import orjson
         return orjson.loads(path.read_text(encoding="utf-8"))
     elif path.suffix == ".yaml":
         try:

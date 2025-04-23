@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Any
 
-import appdirs
-import bagit
-
+try:
+    import appdirs
+    import bagit
+except ImportError:
+    print("install the optional dependencies [bags]")
 # from tools.env_root import project_name
 from tools.experiment.inner_bag import MBag
 from tools.mkdir import SmartPath, exist_literal, source_handling_literal

@@ -4,11 +4,36 @@ Manages user permissions
 Handles connection string generation
 Uses SQLAlchemy as ORM
 """
-import sqlalchemy
+from typing import Optional
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import TypedDict
+from sqlalchemy import Column, Integer
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import declarative_base, Mapped
+from sqlalchemy.orm import validates
 
-from sqlalchemy_utils import database_exists, create_database
+try:
+    from jsonschema import validate, ValidationError
+    from psycopg2.extensions import JSONB
+    import sqlalchemy
+    from sqlalchemy_utils import database_exists, create_database
+except ImportError:
+    print("Install the optional dependency [database]")
 
-from config import PG_CONFIG
+
+class PgConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='allow')
+    PG_HOSTNAME: Optional[str]
+    PG_PORT: Optional[int]
+    PG_ADMIN_NAME: Optional[str]
+    PG_ADMIN_PASSWORD: Optional[SecretStr]
+
+
+try:
+    PG_CONFIG = PgConfig()
+except:
+    PG_CONFIG = None
 
 
 def connection_str(db_name: str= "postgres") -> str:
@@ -69,11 +94,29 @@ def create_user_grant_access(username: str, password: str, database_name: str):
 
     print("User created and permissions granted successfully.")
 
+"""
+JSON schema validation
+SQLAlchemy models
+TypedDict definitions for data structures
+"""
 
-if __name__ == "__main__":
 
-    # new_engine = sqlalchemy.create_engine(connection_str())
-    # connection = new_engine.connect()
+Base = declarative_base()
 
-    create_pg_db("twitter_index")
-    #create_user_grant_access("labelstudio_admin","asas","labelstudio")
+DataStruct = TypedDict('DataStruct', {"@id": Mapped[str], "data": Mapped[dict]})
+
+
+class Doc(Base):
+    __tablename__ = 'docs'
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    data: Mapped[dict] = Column(MutableDict.as_mutable(JSONB), nullable=False)
+    schema: Mapped[DataStruct] = Column(MutableDict.as_mutable(JSONB), nullable=False)
+
+    @validates('data')
+    def validate_data(self, key, value):
+        schema = self.schema.get('@schema', {})
+        try:
+            validate(instance=value, schema=schema)
+        except ValidationError as e:
+            raise ValueError(f"Data validation error: {e.message}")
+        return value

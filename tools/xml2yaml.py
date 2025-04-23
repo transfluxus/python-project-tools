@@ -1,9 +1,11 @@
 import xml.etree.ElementTree as ET
+from typing import Dict, Any
 
-import xmltodict
-import yaml
-from typing import Dict, Any, Union, List
-
+try:
+    import xmltodict
+    import yaml
+except ImportError:
+    print("Install the optional dependencies [xml2yaml]")
 
 def xml_to_dict(element: ET.Element) -> Dict[str, Any]:
     """Convert XML element to dictionary with attributes."""

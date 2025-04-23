@@ -1,7 +1,6 @@
 from csv import DictWriter
 from pathlib import Path
-
-from mypy.server.objgraph import Iterable
+from typing import Iterable
 
 
 def write_csv(destination: Path,
