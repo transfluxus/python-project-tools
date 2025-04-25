@@ -53,7 +53,7 @@ def read_data(path: Path, config: Optional[dict] = None):
             raise ImportError("xmltodict not installed")
         return xmltodict.parse(path.read_text(encoding="utf-8"))
     else:
-        raise NotImplementedError(f"File format {path.suffix} not supported")
+        raise NotImplementedError(f"File format '{path.suffix}' not supported")
 
 
 def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True, encoding: str = "utf-8") -> None:
@@ -116,5 +116,5 @@ def levenhstein_get_similar_filenames(filename: str | Path, directory: Path, ign
     }
     search_ = fp.stem if ignore_suffix else fp.name
     from tools.fast_levenhstein import levenhstein_get_closest_matches
-    return [file_map[fn] for fn in levenhstein_get_closest_matches(search_, list(file_map.keys()), threshold=0.4)]
+    return [file_map[fn].stem for fn in levenhstein_get_closest_matches(search_, list(file_map.keys()), threshold=0.4)]
 
