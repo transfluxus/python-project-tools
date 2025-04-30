@@ -16,8 +16,9 @@ def levenhstein_get_closest_matches(word:str, word_list: Sequence[str], threshol
     """
     try:
         import Levenshtein
-    except ImportError:
-        raise ImportError("Please install the Levenshtein package: pip install python-Levenshtein")
+    except ImportError as err:
+        print(err)
+        raise ImportError("Please install the Levenshtein package: pip install levenshtein")
 
     # Calculate similarities
     similarities = []
