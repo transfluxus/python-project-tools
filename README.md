@@ -1,5 +1,19 @@
 # Python tools
 
+Can be installed with
+
+`uv add git+https://github.com/transfluxus/python-project-tools@master[xml2yaml]`
+
+or
+
+`pip install git+https://github.com/transfluxus/python-project-tools`
+
+or extras
+
+`uv add git+https://github.com/transfluxus/python-project-tools@master[xml2yaml]`
+
+extras are: `xml2yaml`, `database`, `levenshtein`, `bags`
+
 ## root
 
 `tools.env_root.root()` returns the root project path (`pathlib.Path`), which is where the .env file is located.
