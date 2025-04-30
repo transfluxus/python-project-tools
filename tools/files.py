@@ -6,7 +6,6 @@ import yaml
 from orjson import orjson
 
 from tools.env_root import root
-from tools.fast_levenhstein import levenhstein_get_closest_matches
 
 
 def load_json(path: Path) -> dict:
