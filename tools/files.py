@@ -2,6 +2,7 @@ from csv import DictReader
 from pathlib import Path
 from typing import Union, Any, Optional
 
+import yaml
 from orjson import orjson
 
 from tools.env_root import root
@@ -10,9 +11,6 @@ from tools.fast_levenhstein import levenhstein_get_closest_matches
 
 def load_json(path: Path) -> dict:
     return orjson.loads(path.read_text(encoding="utf-8"))
-
-
-
 
 
 def read_data(path: Path, config: Optional[dict] = None):
@@ -32,7 +30,7 @@ def read_data(path: Path, config: Optional[dict] = None):
             from yaml import Loader
         except ImportError:
             raise
-        return yaml.load(path.read_text(encoding="utf-8"),  Loader=Loader)
+        return yaml.load(path.read_text(encoding="utf-8"), Loader=Loader)
     elif path.suffix == ".csv":
         if not config:
             config = {}
@@ -56,10 +54,9 @@ def read_data(path: Path, config: Optional[dict] = None):
         raise NotImplementedError(f"File format '{path.suffix}' not supported")
 
 
-def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True, encoding: str = "utf-8") -> None:
-
+def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True,
+              encoding: str = "utf-8") -> None:
     path = Path(path)
-
     if indent_2:
         content = orjson.dumps(
             data,
@@ -72,8 +69,15 @@ def save_json(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional
     path.write_bytes(content)
 
 
+def save_yaml(path: Union[str, Path], data: Union[dict, Any], indent_2: Optional[bool] = True,
+              encoding: str = "utf-8") -> None:
+    yaml.dump(data, Path(path).open("w", encoding="utf-8"), indent=indent_2, default_flow_style=False,
+              encoding=encoding)
+
+
 def as_path(path: str | Path) -> Path:
     return Path(path)
+
 
 # todo test
 def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
@@ -84,7 +88,6 @@ def get_abs_path(path: Path, base_dir: Optional[Path] = None) -> Path:
             return root() / path
         else:
             return base_dir / path
-
 
 
 def relative_to_project_path(path: Path, parenthesis: bool = True) -> str:
@@ -109,12 +112,11 @@ def levenhstein_get_similar_filenames(filename: str | Path, directory: Path, ign
     :return:
     """
     fp: Path = Path(filename) if isinstance(filename, str) else filename
-    #assert fp.relative_to(directory)
+    # assert fp.relative_to(directory)
     file_map = {
-        f.stem if ignore_suffix else f.name : f
+        f.stem if ignore_suffix else f.name: f
         for f in directory.glob("*.*")
     }
     search_ = fp.stem if ignore_suffix else fp.name
     from tools.fast_levenhstein import levenhstein_get_closest_matches
     return [file_map[fn].stem for fn in levenhstein_get_closest_matches(search_, list(file_map.keys()), threshold=0.4)]
-
