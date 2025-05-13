@@ -75,7 +75,7 @@ DEFAULT_LOG_CONFIG = {
     },
     "loggers": {},
     "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": ["console", "file_handler", "error_file_handler"]
     }
 }
@@ -241,6 +241,10 @@ def get_logger(file_path: str) -> logging.Logger:
     if not "/" in file_path and not file_path.endswith(".py"):
         file_path = file_path.replace(".", "/") + ".py"
     return LoggingManager(None).get_file_logger(file_path)
+
+
+def get_model_logger(clz: Any) -> logging.Logger:
+    return get_logger(f"{clz.__module__}.{clz.__class__.__name__}")
 
 
 # Test the logger when run as main
