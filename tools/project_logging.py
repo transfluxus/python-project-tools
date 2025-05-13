@@ -24,15 +24,13 @@ import logging
 import logging.config
 import logging.handlers
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
 
 from tools.data_folder import base_data_folder
 from tools.env_root import root
 from tools.files import save_json
-
-
-
 
 # Default logging configuration with file handlers
 DEFAULT_LOG_CONFIG = {
@@ -60,7 +58,7 @@ DEFAULT_LOG_CONFIG = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "detailed",
-            "filename":  "app.log",
+            "filename": "app.log",
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
             "encoding": "utf8"
@@ -88,6 +86,7 @@ DEFAULT_LOGGER_CONFIG = {
     "propagate": False
 }
 
+
 class LoggingManager:
     """
     Manages project-wide logging configuration and logger creation.
@@ -98,7 +97,6 @@ class LoggingManager:
     @type project_root: Path
     """
     _instance = None
-
 
     def __new__(cls, *args, **kwargs) -> "LoggingManager":
         if not cls._instance:
@@ -118,11 +116,12 @@ class LoggingManager:
             self.config_path = SmartPath(config_path)
         else:
             self.config_path = SmartPath(base_data_folder() / "log_conf.json", **{"data": DEFAULT_LOG_CONFIG})
-        self.config_path /  ("txt-logs","create", DEFAULT_LOG_CONFIG)
-        #self.config_path = config_path
+        self.config_path / ("txt-logs", "create", DEFAULT_LOG_CONFIG)
+        # self.config_path = config_path
         self.project_root = project_root
         self.config_data: Optional[dict[str, Any]] = None
         self.initialized = False
+        self.orig_handler_filenames: dict[str, Path] = {}
         self.init_logging()
 
     def init_logging(self) -> None:
@@ -147,10 +146,12 @@ class LoggingManager:
         """
         try:
             self.config_data = json.loads(self.config_path.read_text(encoding="utf-8"))
-            for handler in ["file_handler", "error_file_handler"]:
-                file_path = Path(self.config_data["handlers"][handler]["filename"])
-                if not file_path.is_absolute():
-                    self.config_data["handlers"][handler]["filename"] = str(self.log_dir / file_path)
+            for handler_name, handler in self.config_data["handlers"].items():
+                if "filename" in handler:
+                    file_path = Path(handler["filename"])
+                    self.orig_handler_filenames[handler_name] = file_path
+                    if not file_path.is_absolute():
+                        handler["filename"] = str(self.log_dir / file_path)
             logging.config.dictConfig(self.config_data)
         except (json.JSONDecodeError, OSError) as e:
             print(f"Failed to load logging config: {e}")  # Use print since logging isn't configured yet
@@ -169,8 +170,13 @@ class LoggingManager:
 
         if name not in self.config_data["loggers"]:
             self.config_data["loggers"][name] = DEFAULT_LOGGER_CONFIG.copy()
+            config_copy = deepcopy(self.config_data)
             try:
-                save_json(self.config_path, self.config_data)
+                # make handler-filenames relative again:
+                for handler_name, handler in config_copy["handlers"].items():
+                    if "filename" in handler:
+                        handler["filename"] = str(self.orig_handler_filenames[handler_name])
+                save_json(self.config_path, config_copy)
                 logging.config.dictConfig(self.config_data)
             except OSError as e:
                 logging.error(f"Failed to save logger configuration: {e}")
@@ -221,7 +227,7 @@ class LoggingManager:
 
 
 # Global instance - automatically initialized on module import
-#_manager = LoggingManager()
+# _manager = LoggingManager()
 
 def get_logger(file_path: str) -> logging.Logger:
     """
@@ -233,10 +239,8 @@ def get_logger(file_path: str) -> logging.Logger:
     @rtype: logging.Logger
     """
     if not "/" in file_path and not file_path.endswith(".py"):
-        file_path = file_path.replace(".","/") + ".py"
+        file_path = file_path.replace(".", "/") + ".py"
     return LoggingManager(None).get_file_logger(file_path)
-
-
 
 
 # Test the logger when run as main
@@ -246,5 +250,3 @@ if __name__ == "__main__":
     logger.info("Info message")
     logger.warning("Warning message")
     logger.error("Error message")
-
-
