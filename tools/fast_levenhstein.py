@@ -1,3 +1,4 @@
+from operator import itemgetter
 from typing import Sequence
 
 
@@ -37,6 +38,8 @@ def levenhstein_get_closest_matches(word:str, word_list: Sequence[str], threshol
 
     # Filter by threshold and sort by similarity (highest first)
     filtered_matches = [match for match in similarities if match[1] >= threshold]
+    if not filtered_matches:
+        return [m[0] for m in sorted(similarities, key=itemgetter(1))]
     sorted_matches = sorted(filtered_matches, key=lambda x: x[1], reverse=True)
 
     # Return the top 2 matches (or fewer if not enough matches meet the threshold)

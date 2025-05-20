@@ -18,6 +18,9 @@ dependencies = [
 [tool.setuptools]
 packages = ["tools"]
 
+#[tool.uv.sources]
+#python-project-tools = { workspace = true }
+
 [project.optional-dependencies]
 database = [
     "sqlalchemy>=2.0.40",
@@ -30,6 +33,10 @@ levenshtein = [
 bags = [
     "appdirs>=1.4.4",
     "bagit>=1.8.1",
+]
+
+excel = [
+    "openpyxl>=3.1.5",
 ]
 xml2yaml = [
     "xmltodict>=0.14.2",
