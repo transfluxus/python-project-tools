@@ -11,6 +11,8 @@ or
 or extras
 
 `uv add git+https://github.com/transfluxus/python-project-tools@master[xml2yaml]`
+or 
+`uv pip install python-project-tools[xml2yaml]`
 
 extras are: `xml2yaml`, `database`, `levenshtein`, `bags`
 
