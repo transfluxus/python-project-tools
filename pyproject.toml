@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-project-tools"
-version = "0.9.0"
+version = "0.10"
 description = "python project tools"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2.9.1",
     "orjson>=3.10.16",
     "pyyaml>=6.0.2",
+    "levenshtein>=0.27.1"
 ]
 
 [tool.setuptools]
@@ -27,9 +28,7 @@ database = [
     "sqlalchemy-utils>=0.41.2",
     "jsonschema>=4.23.0",
 ]
-levenshtein = [
-    "levenshtein>=0.27.1",
-]
+
 bags = [
     "appdirs>=1.4.4",
     "bagit>=1.8.1",
