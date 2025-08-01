@@ -24,6 +24,7 @@ import logging
 import logging.config
 import logging.handlers
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
@@ -81,7 +82,7 @@ DEFAULT_LOG_CONFIG = {
 }
 
 DEFAULT_LOGGER_CONFIG = {
-    "level": "DEBUG",
+    "level": "INFO",
     "handlers": ["console", "file_handler", "error_file_handler"],
     "propagate": False
 }
@@ -209,7 +210,9 @@ class LoggingManager:
         try:
             relative_path = os.path.relpath(file_path, self.project_root)
             module_name = os.path.splitext(relative_path)[0]
-            return module_name.replace(os.sep, '.')
+            dotted = module_name.replace(os.sep, '.')
+            dotted = re.compile("\\.+").sub(".",dotted)
+            return dotted
         except ValueError as e:
             logging.warning(f"Could not resolve module name for {file_path}: {e}")
             return os.path.splitext(os.path.basename(file_path))[0]
@@ -240,6 +243,10 @@ def get_logger(file_path: str) -> logging.Logger:
     """
     if not "/" in file_path and not file_path.endswith(".py"):
         file_path = file_path.replace(".", "/") + ".py"
+    if "site-packages" in file_path:
+        fp_parts = file_path.split("/")
+        fp_parts = fp_parts[fp_parts.index("site-packages")+1:]
+        file_path = "/".join(fp_parts)
     return LoggingManager(None).get_file_logger(file_path)
 
 
