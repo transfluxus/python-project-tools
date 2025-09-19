@@ -28,20 +28,21 @@ def patch_typer_invoke(log_fp: Optional[Path] = None):
              "params": ctx.params,
              "ts": start.isoformat(timespec="minutes")}
 
-        # print(f"Command: {ctx.command.name}")
-        # print(f"Params: {ctx.params}")  # Will have all your arguments!
-
-        # Call the original command
+        res = None
         try:
+            # Call the original command
             res = _original_invoke(self, ctx)
-            print(res)
         except Exception as e:
             row["error"] = str(e)
         finally:
             row["duration"] = humanize.naturaldelta(datetime.now() - start)
+            if res and isinstance(res, Path):
+                row["result"] = str(res)
             with log_fp.open("a", encoding="utf-8") as fout:
                 fout.write(json.dumps(row) + os.linesep)
-            return res
+            return
+
+        return res
 
     # Apply the patch
     typer.core.TyperCommand.invoke = patched_invoke
