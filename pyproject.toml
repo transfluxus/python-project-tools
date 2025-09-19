@@ -13,7 +13,8 @@ dependencies = [
     "pydantic-settings>=2.9.1",
     "orjson>=3.10.16",
     "pyyaml>=6.0.2",
-    "levenshtein>=0.27.1"
+    "levenshtein>=0.27.1",
+    "humanize>=4.13.0",
 ]
 
 [tool.setuptools]
