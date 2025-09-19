@@ -23,10 +23,15 @@ def patch_typer_invoke(log_fp: Optional[Path] = None):
     def patched_invoke(self, ctx):
         # This runs after parsing but before command execution
 
+        # print(ctx.parent.info_name)
+        # print("{ctx.parent.info_name=}")
         start = datetime.now()
-        row = {"cmd": ctx.command.name,
-             "params": ctx.params,
-             "ts": start.isoformat(timespec="minutes")}
+        # TODO...
+        command_path = [ctx.command.name]
+        print(ctx.parent.info_name)
+        row = {"cmd": ctx.command_path.replace(" ", "/"),
+               "params": ctx.params,
+               "ts": start.isoformat(timespec="minutes")}
 
         res = None
         try:
@@ -45,4 +50,10 @@ def patch_typer_invoke(log_fp: Optional[Path] = None):
         return res
 
     # Apply the patch
-    typer.core.TyperCommand.invoke = patched_invoke
+    module_ = typer.core.TyperCommand.invoke.__module__
+    orig_module = "click.core"
+    modules = [orig_module, "tools.typer_log"]
+    if module_ not in modules:
+        print(f"warning typer invoke command should be either : {modules}. Fix the library")
+    if module_ == orig_module:
+        typer.core.TyperCommand.invoke = patched_invoke
