@@ -28,7 +28,7 @@ def patch_typer_invoke(log_fp: Optional[Path] = None):
         start = datetime.now()
         # TODO...
         command_path = [ctx.command.name]
-        print(ctx.parent.info_name)
+        #print(ctx.parent.info_name)
         row = {"cmd": ctx.command_path.replace(" ", "/"),
                "params": ctx.params,
                "ts": start.isoformat(timespec="minutes")}
@@ -39,6 +39,7 @@ def patch_typer_invoke(log_fp: Optional[Path] = None):
             res = _original_invoke(self, ctx)
         except Exception as e:
             row["error"] = str(e)
+            print(e)
         finally:
             row["duration"] = humanize.naturaldelta(datetime.now() - start)
             if res and isinstance(res, Path):
