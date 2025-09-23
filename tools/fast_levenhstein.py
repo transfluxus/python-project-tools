@@ -25,7 +25,7 @@ def levenhstein_get_closest_matches(word:str, word_list: Sequence[str], threshol
     similarities = []
     for candidate in word_list:
         # Calculate Levenshtein distance
-        distance = Levenshtein.distance(word, candidate)
+        distance = Levenshtein.ratio(word, candidate)
 
         # Convert to similarity score (0 to 1)
         max_len = max(len(word), len(candidate))
