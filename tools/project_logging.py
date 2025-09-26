@@ -250,7 +250,7 @@ def get_logger(file_path: str) -> logging.Logger:
     return LoggingManager(None).get_file_logger(file_path)
 
 
-def get_model_logger(clz: Any, extra: Optional[str]) -> logging.Logger:
+def get_model_logger(clz: Any, extra: Optional[str] = None) -> logging.Logger:
     _extra = f"-[{extra}]" if extra else ""
     return get_logger(f"{clz.__module__}.{clz.__class__.__name__}{_extra}")
 
