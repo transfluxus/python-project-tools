@@ -13,4 +13,4 @@ SerializableDatetimeAlways = Annotated[
 ]
 
 SerializablePath = Annotated[
-    Path, PlainSerializer(lambda p: p.as_posix(), return_type=str)]
+    Path, PlainSerializer(lambda p: p.as_posix(), return_type=str, when_used="always")]
