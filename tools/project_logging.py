@@ -252,7 +252,15 @@ def get_logger(file_path: str) -> logging.Logger:
 
 def get_model_logger(clz: Any, extra: Optional[str] = None) -> logging.Logger:
     _extra = f"-[{extra}]" if extra else ""
-    return get_logger(f"{clz.__module__}.{clz.__class__.__name__}{_extra}")
+    try:
+        module_name = clz.__module__
+        clz_name = clz.__name__
+    except Exception as err:
+        logger = get_logger(__file__)
+        logger.error(f"Could not resolve module name for {clz}: {err}")
+        module_name = "unknown"
+        clz_name =str(clz)
+    return get_logger(f"{module_name}.{clz_name}{_extra}")
 
 
 # Test the logger when run as main
