@@ -15,6 +15,10 @@ try:
     _execution_context = {}
     _log_buffer = []
 
+
+    def safe_serializer(obj):
+        return str(obj)
+
     def patch_typer_invoke(log_fp: Optional[Path] = None):
         global _execution_context
         if not log_fp:
@@ -69,7 +73,7 @@ try:
                 if res and isinstance(res, Path):
                     row["result"] = str(res)
                 with log_fp.open("a", encoding="utf-8") as fout:
-                    fout.write(json.dumps(row) + os.linesep)
+                    fout.write(json.dumps(row, default=safe_serializer) + os.linesep)
 
             return res
 
@@ -104,9 +108,6 @@ try:
         global _log_buffer
         if not _log_buffer:
             return
-
-        def safe_serializer(obj):
-            return str(obj)
 
         log_fp = root() / "data/typer-log.jsonl"
         with log_fp.open("a", encoding="utf-8") as fout:
