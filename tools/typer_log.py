@@ -105,10 +105,13 @@ try:
         if not _log_buffer:
             return
 
+        def safe_serializer(obj):
+            return str(obj)
+
         log_fp = root() / "data/typer-log.jsonl"
         with log_fp.open("a", encoding="utf-8") as fout:
             for entry in _log_buffer:
-                fout.write(json.dumps(entry) + os.linesep)
+                fout.write(json.dumps(entry, default=safe_serializer) + os.linesep)
         _log_buffer.clear()
 
     # Patch Typer class to add log method
