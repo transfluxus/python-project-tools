@@ -128,7 +128,6 @@ try:
 
         typer.Typer.__init__ = patched_init
 
-
     add_log_to_typer()
 
 except ModuleNotFoundError as err:
