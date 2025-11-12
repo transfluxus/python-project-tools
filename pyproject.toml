@@ -41,3 +41,7 @@ excel = [
 xml2yaml = [
     "xmltodict>=0.14.2",
 ]
+dev = [
+    "pytest>=8.4.2",
+    "typer>=0.19.2",
+]
