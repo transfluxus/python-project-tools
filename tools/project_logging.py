@@ -158,6 +158,10 @@ class LoggingManager:
             print(f"Failed to load logging config: {e}")  # Use print since logging isn't configured yet
             self.config_data = DEFAULT_LOG_CONFIG.copy()
             logging.config.dictConfig(self.config_data)
+        except TypeError as e:
+            print(f"Failed to load logging config: {e}")  # Use print since logging isn't configured yet
+            #print(self.config_data)
+            logging.config.dictConfig(self.config_data)
 
     def add_logger(self, name: str) -> None:
         """
