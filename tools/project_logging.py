@@ -25,6 +25,7 @@ import logging.config
 import logging.handlers
 import os
 import re
+import threading
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
@@ -98,32 +99,53 @@ class LoggingManager:
     @type project_root: Path
     """
     _instance = None
+    _instance_lock = threading.Lock()  # Class-level lock for singleton creation
 
     def __new__(cls, *args, **kwargs) -> "LoggingManager":
+        # Thread-safe singleton creation
         if not cls._instance:
-            cls._instance = super().__new__(cls)
+            with cls._instance_lock:
+                # Double-check pattern: check again inside lock
+                if not cls._instance:
+                    cls._instance = super().__new__(cls)
+                    # Mark that we need to initialize (do this ONCE per instance)
+                    cls._instance._needs_init = True
         return cls._instance
 
     def __init__(self, project_root: Optional[Path] = None, config_path: Optional[Path] = None):
-        # Setup log directory structure using create_data_folder
-        from tools.data_folder import create_data_folder
-        from tools.mkdir import SmartPath
-        self.log_dir = create_data_folder("logs")
+        # Make __init__ idempotent: only initialize once per instance lifetime
+        if not getattr(self, '_needs_init', False):
+            return  # Already initialized, skip
 
-        self.config_path: SmartPath
-        if not project_root:
-            project_root = root()
-        if config_path:
-            self.config_path = SmartPath(config_path)
-        else:
-            self.config_path = SmartPath(base_data_folder() / "log_conf.json", **{"data": DEFAULT_LOG_CONFIG})
-        self.config_path / ("txt-logs", "create", DEFAULT_LOG_CONFIG)
-        # self.config_path = config_path
-        self.project_root = project_root
-        self.config_data: Optional[dict[str, Any]] = None
-        self.initialized = False
-        self.orig_handler_filenames: dict[str, Path] = {}
-        self.init_logging()
+        with self._instance_lock:
+            # Double-check inside lock
+            if not getattr(self, '_needs_init', False):
+                return
+
+            # Setup log directory structure using create_data_folder
+            from tools.data_folder import create_data_folder
+            from tools.mkdir import SmartPath
+
+            self._operation_lock = threading.RLock()  # Instance-level lock for operations
+            self.log_dir = create_data_folder("logs")
+
+            self.config_path: SmartPath
+            if not project_root:
+                project_root = root()
+            if config_path:
+                self.config_path = SmartPath(config_path)
+            else:
+                self.config_path = SmartPath(base_data_folder() / "log_conf.json", **{"data": DEFAULT_LOG_CONFIG})
+            self.config_path / ("txt-logs", "create", DEFAULT_LOG_CONFIG)
+            # self.config_path = config_path
+            self.project_root = project_root
+            self.config_data: Optional[dict[str, Any]] = None
+            self.initialized = False
+            self.orig_handler_filenames: dict[str, Path] = {}
+            self.init_logging()
+
+            # Mark initialization complete
+            self._needs_init = False
 
     def init_logging(self) -> None:
         """
@@ -170,21 +192,22 @@ class LoggingManager:
         @param name: Name of the logger to add
         @type name: str
         """
-        if not self.config_data:
-            self.reload_config()
+        with self._operation_lock:
+            if not self.config_data:
+                self.reload_config()
 
-        if name not in self.config_data["loggers"]:
-            self.config_data["loggers"][name] = DEFAULT_LOGGER_CONFIG.copy()
-            config_copy = deepcopy(self.config_data)
-            try:
-                # make handler-filenames relative again:
-                for handler_name, handler in config_copy["handlers"].items():
-                    if "filename" in handler:
-                        handler["filename"] = str(self.orig_handler_filenames[handler_name])
-                save_json(self.config_path, config_copy)
-                logging.config.dictConfig(self.config_data)
-            except OSError as e:
-                logging.error(f"Failed to save logger configuration: {e}")
+            if name not in self.config_data["loggers"]:
+                self.config_data["loggers"][name] = DEFAULT_LOGGER_CONFIG.copy()
+                config_copy = deepcopy(self.config_data)
+                try:
+                    # make handler-filenames relative again:
+                    for handler_name, handler in config_copy["handlers"].items():
+                        if "filename" in handler:
+                            handler["filename"] = str(self.orig_handler_filenames[handler_name])
+                    save_json(self.config_path, config_copy)
+                    logging.config.dictConfig(self.config_data)
+                except OSError as e:
+                    logging.error(f"Failed to save logger configuration: {e}")
 
     def get_or_create_logger(self, name: str) -> logging.Logger:
         """
@@ -195,12 +218,13 @@ class LoggingManager:
         @return: Configured logger instance
         @rtype: logging.Logger
         """
-        if not self.initialized:
-            self.init_logging()
+        with self._operation_lock:
+            if not self.initialized:
+                self.init_logging()
 
-        if not self.config_data or name not in self.config_data["loggers"]:
-            self.add_logger(name)
-        return logging.getLogger(name)
+            if not self.config_data or name not in self.config_data["loggers"]:
+                self.add_logger(name)
+            return logging.getLogger(name)
 
     def get_module_name(self, file_path: str) -> str:
         """
