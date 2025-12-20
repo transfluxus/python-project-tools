@@ -130,11 +130,67 @@ try:
 
     add_log_to_typer()
 
+    def add_overview_command(typer_app: typer.Typer):
+
+        def overview() -> None:
+            """
+            Display hierarchical overview of all available CLI commands.
+
+            Recursively traverses the command tree and displays all commands and
+            subcommands in a tree structure using rich console formatting. This
+            provides a quick reference for all available CLI operations.
+
+            Notes
+            -----
+            The tree includes both top-level commands and subcommands (like .db commands).
+            Each command is displayed with its short help text for quick reference.
+            """
+            from rich.tree import Tree
+
+            def _print_commands(current_app: typer.Typer, current_tree: Optional[Tree] = None) -> Tree:
+                """
+                Recursively print commands and subcommands.
+
+                Parameters
+                ----------
+                current_app : typer.Typer
+                    Typer app instance to traverse
+                current_tree : Tree, optional
+                    Rich Tree node to append commands to
+
+                Returns
+                -------
+                Tree
+                    Rich Tree with all commands and subcommands
+                """
+                if not current_tree:
+                    current_tree = Tree(current_app.info.name)
+                # Print commands at this level
+                for cmd in current_app.registered_commands:
+                    name = cmd.name or cmd.callback.__name__
+                    help_text = cmd.short_help or cmd.help or ""
+                    current_tree.add(f"{name} - {help_text}")
+
+                # Find and process all subapps
+                for group in current_app.registered_groups:
+                    subapp_name = group.name or "sub-app"
+                    subapp = group.typer_instance
+                    sub_tree = current_tree.add(subapp_name)
+                    _print_commands(subapp, sub_tree)
+
+                # Start the recursive printing from the main app
+                return current_tree
+
+            tree = _print_commands(typer_app)
+            from rich import print
+            print(tree)
+
+        typer_app.command()(overview)
+
 except ModuleNotFoundError as err:
     get_logger(__file__).error(err)
     def patch_typer_invoke(_):
         pass
     def log(*args, **kwargs):
         pass
-
 
